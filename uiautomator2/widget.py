@@ -33,15 +33,13 @@ def xml2nodes(xml_content: Union[str, bytes]):
             attrib['size'] = (rx - lx, ry - ly)
         attrib.pop("index", None)
 
-        ok = False
-        for attrname in ("text", "resource-id", "content-desc"):
-            if attrname in attrib:
-                ok = True
-                break
+        ok = any(
+            attrname in attrib
+            for attrname in ("text", "resource-id", "content-desc")
+        )
+
         if ok:
-            items = []
-            for k, v in sorted(attrib.items()):
-                items.append(k + ":" + str(v))
+            items = [f"{k}:{str(v)}" for k, v in sorted(attrib.items())]
             nodes.append('|'.join(items))
     return nodes
 
@@ -55,7 +53,9 @@ def hierarchy_sim(xml1: str, xml2: str):
     c2 = Counter(ns2)
 
     same_count = sum(
-        [min(c1[k], c2[k]) for k in set(c1.keys()).intersection(c2.keys())])
+        min(c1[k], c2[k]) for k in set(c1.keys()).intersection(c2.keys())
+    )
+
     logger.debug("Same count: %d ns1: %d ns2: %d", same_count, len(ns1), len(ns2))
     return same_count / (len(ns1) + len(ns2)) * 2
 
@@ -70,9 +70,7 @@ def safe_xmlstr(s):
 
 
 def frozendict(d: dict):
-    items = []
-    for k, v in sorted(d.items()):
-        items.append(k + ":" + str(v))
+    items = [f"{k}:{str(v)}" for k, v in sorted(d.items())]
     return '|'.join(items)
 
 
@@ -118,7 +116,7 @@ class Widget(object):
         host = self.__domains.get(fields[0])
         id = fields[1]  # ignore the third part
         if not re.match("^https?://", host):
-            host = "http://" + host
+            host = f"http://{host}"
         return f"{host}/api/v1/widgets/{id}"
 
     def _eq(self, precision: float, a, b):
@@ -179,10 +177,12 @@ class Widget(object):
         return result
 
     def node2string(self, node: etree.Element):
-        return node.tag + ":" + '|'.join([
-            node.attrib.get(key, "")
-            for key in ["text", "resource-id", "content-desc"]
-        ])
+        return f"{node.tag}:" + '|'.join(
+            [
+                node.attrib.get(key, "")
+                for key in ["text", "resource-id", "content-desc"]
+            ]
+        )
 
     def hybird_compare_node(self, node_a, node_b, size_a, size_b):
         """
@@ -194,9 +194,8 @@ class Widget(object):
         """
         cmp_node = partial(self._compare_node, size_a=size_a, size_b=size_b)
 
-        results = []
+        results = [cmp_node(node_a, node_b)]
 
-        results.append(cmp_node(node_a, node_b))
         results.append(cmp_node(node_a.getparent(), node_b.getparent()))
 
         a_children = node_a.getparent().getchildren()
@@ -204,11 +203,12 @@ class Widget(object):
         if len(a_children) != len(b_children):
             return results
 
-        children_result = []
         a_children.remove(node_a)
         b_children.remove(node_b)
-        for i in range(len(a_children)):
-            children_result.append(cmp_node(a_children[i], b_children[i]))
+        children_result = [
+            cmp_node(a_children[i], b_children[i]) for i in range(len(a_children))
+        ]
+
         results.append(children_result)
         return results
 
@@ -218,10 +218,7 @@ class Widget(object):
         """
         if isinstance(obj, CompareResult):
             return obj.score
-        ret = []
-        for item in obj:
-            ret.append(self._hybird_result_to_score(item))
-        return ret
+        return [self._hybird_result_to_score(item) for item in obj]
 
     def replace_etree_node_to_class(self, root: etree.ElementTree):
         for node in root.xpath("//node"):
@@ -407,61 +404,6 @@ def main():
 
     d.widget.exists("lo/00019#播放全部")
     return
-
-    d.widget.click("00019#播放全部")
-    # d.widget.click("00018#播放暂停")
-    d.widget.click("00018#播放暂停")
-    d.widget.click("00021#转到上一层级")
-    return
-
-    d.widget.click("每日推荐")
-    widget_id = "00009#上新"
-    widget_id = "00011#每日推荐"
-    widget_id = "00014#立减20"
-    result = d.widget.match(widget_id)
-    # e = Widget(d)
-    # result = e.match("00003")
-    # print(result)
-    # # e.match("00002")
-    # # result = e.match("00007")
-
-    wsize = d.window_size()
-    from lxml import etree
-
-    result = d.widget.match(widget_id)
-    pprint(result.node.attrib)
-    pprint(result.score)
-    pprint(result.detail)
-
-    show_click_position(d, result.point)
-    return
-
-    root = etree.parse(
-        '/Users/shengxiang/Projects/weditor/widgets/00010/hierarchy.xml')
-    nodes = root.xpath('/hierarchy/node/node/node/node')
-    a, b = nodes[0], nodes[1]
-    result = d.widget.hybird_compare_node(a, b, wsize, wsize)
-    pprint(result)
-    score = d.widget._hybird_result_to_score(result)
-    pprint(score)
-    return
-
-    score = d.widget._compare_node(a, b, wsize, wsize)
-    print(score)
-
-    a, b = nodes[0].getparent(), nodes[1].getparent()
-    score = d.widget._compare_node(a, b, wsize, wsize)
-    pprint(score)
-
-    return
-
-    print("score:", result.score)
-    x, y = result.point
-    # # pprint(result.widget)
-    # # pprint(dict(result.node.attrib))
-    pprint(result.detail)
-    im = draw_point(d.screenshot(), x, y)
-    im.show()
 
 
 if __name__ == "__main__":

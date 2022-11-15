@@ -130,9 +130,7 @@ class CVHandler(object):
         SIFT特征点匹配
         '''
         res = self.find_all_sift(im_source, im_search, min_match_count, maxcnt=1)
-        if not res:
-            return None
-        return res[0]
+        return res[0] if res else None
 
     def find_all_sift(self, im_source, im_search, min_match_count=4, maxcnt=0):
         '''
@@ -230,9 +228,7 @@ class CVHandler(object):
         result = self.find_all_template(im_source, im_search, maxcnt=maxcnt)
         if not result:
             result = self.find_all_sift(im_source, im_search, maxcnt=maxcnt)
-        if not result:
-            return []
-        return [match["result"] for match in result]
+        return [match["result"] for match in result] if result else []
 
     def find(self, im_source, im_search):
         '''
@@ -303,14 +299,16 @@ class Aircv(object):
 
         def on_message(ws, message):
             this = self
-            if isinstance(message, bytes):
-
-                if int(time.time()) - this.__rcv_interva_time_cache >= Aircv.rcv_interval:
-                    # with open(this.aircv_cache_image_name, 'wb') as f:
-                    #     f.write(message)
-                    # this.aircv_cache_image = this.cvHandler.imread(self.aircv_cache_image_name)
-                    this.aircv_cache_image = this.cvHandler.imdecode(message)
-                    this.__rcv_interva_time_cache = int(time.time())
+            if (
+                isinstance(message, bytes)
+                and int(time.time()) - this.__rcv_interva_time_cache
+                >= Aircv.rcv_interval
+            ):
+                # with open(this.aircv_cache_image_name, 'wb') as f:
+                #     f.write(message)
+                # this.aircv_cache_image = this.cvHandler.imread(self.aircv_cache_image_name)
+                this.aircv_cache_image = this.cvHandler.imdecode(message)
+                this.__rcv_interva_time_cache = int(time.time())
 
         def on_error(ws, error):
             raise RuntimeError(error)
@@ -322,11 +320,14 @@ class Aircv(object):
             print("### ws_screen on_open ###")
 
         if not self.ws_screen or not self.ws_screen.keep_running:
-            self.ws_screen = websocket.WebSocketApp("ws://" + self.d._host + ":" + str(self.d._port) + "/minicap",
-                                                    on_open=on_open,
-                                                    on_message=on_message,
-                                                    on_error=on_error,
-                                                    on_close=on_close)
+            self.ws_screen = websocket.WebSocketApp(
+                f"ws://{self.d._host}:{str(self.d._port)}/minicap",
+                on_open=on_open,
+                on_message=on_message,
+                on_error=on_error,
+                on_close=on_close,
+            )
+
             ws_thread = threading.Thread(target=self.ws_screen.run_forever)
             ws_thread.daemon = True
             ws_thread.start()
@@ -451,10 +452,10 @@ class Aircv(object):
                 print(timeout)
             if self.aircv_cache_image is not None:
                 for img in img_list:
-                    point = self.find_template_by_crop(img, area)
-                    if not point:
+                    if point := self.find_template_by_crop(img, area):
+                        point_list.append(point)
+                    else:
                         break
-                    point_list.append(point)
             if len(point_list) == len(img_list):
                 time.sleep(Aircv.wait_before_operation)
                 self.d.swipe_points(point_list, duration)
@@ -493,9 +494,8 @@ class Aircv(object):
                 point = self.find_template_by_crop(img, area)
             if point:
                 break
-            else:
-                timeout -= 1
-                time.sleep(1)
+            timeout -= 1
+            time.sleep(1)
             if not timeout:
                 raise RuntimeError('No image found')
         return point

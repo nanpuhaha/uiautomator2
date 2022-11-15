@@ -61,9 +61,7 @@ class BrowserTab():
     
     def _evaluate(self, expression, **kwargs):
         if kwargs:
-            d = {}
-            for k, v in kwargs.items():
-                d[k] = json.dumps(v)
+            d = {k: json.dumps(v) for k, v in kwargs.items()}
             t = string.Template(expression)
             expression = t.substitute(d)
         return self._call("Runtime.evaluate", expression=expression)
@@ -208,7 +206,7 @@ def main():
     d = u2.connect_usb()
     assert d._adb_device, "must connect with usb"
     for socket_path in d.request_agent("/webviews").json():
-        port = d._adb_device.forward_port("localabstract:"+socket_path)
+        port = d._adb_device.forward_port(f"localabstract:{socket_path}")
         data = requests.get(f"http://localhost:{port}/json/version").json()
         import pprint
         pprint.pprint(data)

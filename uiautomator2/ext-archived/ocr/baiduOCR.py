@@ -57,8 +57,7 @@ class OCRSelector(u2OCRSelector):
 
     def get_text(self, timeout=10):
         result = self.wait(timeout=timeout)
-        word = result[0][0]
-        return word
+        return result[0][0]
 
 
 class OCRCustom(OCR):
@@ -68,8 +67,7 @@ class OCRCustom(OCR):
 
     def get_words(self):
         img = self._d.screenshot(format='raw')
-        resp = self._client.custom(img, self.options)  # iocr财会票据文字识别(含位置信息版)，每天 500 次免费
-        return resp
+        return self._client.custom(img, self.options)
 
     def all(self):
         resp = self.get_words()
@@ -82,8 +80,7 @@ class OCRCustom(OCR):
             x, y = left + width // 2, top + height // 2
             ocr_text = item['word']
             ocr_text_name = item['word_name']
-            result.append((ocr_text, x, y))
-            result.append((ocr_text_name, x, y))
+            result.extend(((ocr_text, x, y), (ocr_text_name, x, y)))
         result.sort(key=lambda v: (v[2], v[1]))
         # print(result)
         return result

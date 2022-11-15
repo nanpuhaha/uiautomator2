@@ -15,5 +15,5 @@ def index():
 
 @app.route('/battery_level/<ip>')
 def battery_level(ip):
-    r = requests.get('http://'+ip+':7912/info').json()
+    r = requests.get(f'http://{ip}:7912/info').json()
     return str(r.get('battery').get('level'))

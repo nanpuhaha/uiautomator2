@@ -58,9 +58,7 @@ class Selector(dict):
         for key in ('childOrSibling', 'childOrSiblingSelector'):
             if not selector.get(key):
                 selector.pop(key)
-        args = []
-        for (k, v) in selector.items():
-            args.append(k + '=' + repr(v))
+        args = [f'{k}={repr(v)}' for k, v in selector.items()]
         return 'Selector [' + ', '.join(args) + ']'
 
     def __setitem__(self, k, v):
@@ -70,7 +68,7 @@ class Selector(dict):
                   self).__setitem__(self.__mask,
                                     self[self.__mask] | self.__fields[k][0])
         else:
-            raise ReferenceError("%s is not allowed." % k)
+            raise ReferenceError(f"{k} is not allowed.")
 
     def __delitem__(self, k):
         if k in self.__fields:
@@ -80,9 +78,17 @@ class Selector(dict):
                                     self[self.__mask] & ~self.__fields[k][0])
 
     def clone(self):
-        kwargs = dict((k, self[k]) for k in self if k not in [
-            self.__mask, self.__childOrSibling, self.__childOrSiblingSelector
-        ])
+        kwargs = {
+            k: self[k]
+            for k in self
+            if k
+            not in [
+                self.__mask,
+                self.__childOrSibling,
+                self.__childOrSiblingSelector,
+            ]
+        }
+
         selector = Selector(**kwargs)
         for v in self[self.__childOrSibling]:
             selector[self.__childOrSibling].append(v)
@@ -315,8 +321,7 @@ class UiObject(object):
                                                   int(timeout * 1000),
                                                   http_timeout=http_wait)
             except requests.ReadTimeout as e:
-                warnings.warn("waitForExists readTimeout: %s" % e,
-                              RuntimeWarning)
+                warnings.warn(f"waitForExists readTimeout: {e}", RuntimeWarning)
                 return self.exists()
         else:
             try:
@@ -324,8 +329,7 @@ class UiObject(object):
                                                   int(timeout * 1000),
                                                   http_timeout=http_wait)
             except requests.ReadTimeout as e:
-                warnings.warn("waitForExists readTimeout: %s" % e,
-                              RuntimeWarning)
+                warnings.warn(f"waitForExists readTimeout: {e}", RuntimeWarning)
                 return not self.exists()
 
     def wait_gone(self, timeout=None):
@@ -350,10 +354,11 @@ class UiObject(object):
 
     def set_text(self, text, timeout=None):
         self.must_wait(timeout=timeout)
-        if not text:
-            return self.jsonrpc.clearTextField(self.selector)
-        else:
-            return self.jsonrpc.setText(self.selector, text)
+        return (
+            self.jsonrpc.setText(self.selector, text)
+            if text
+            else self.jsonrpc.clearTextField(self.selector)
+        )
 
     def get_text(self, timeout=None):
         """ get text from field """
@@ -500,6 +505,8 @@ class UiObject(object):
         jsonrpc = self.jsonrpc
         selector = self.selector
 
+
+
         class _Fling(object):
             def __init__(self):
                 self.vertical = True
@@ -517,7 +524,7 @@ class UiObject(object):
                 ]:
                     self.action = key
                     return self
-                raise ValueError("invalid prop %s" % key)
+                raise ValueError(f"invalid prop {key}")
 
             def __call__(self, max_swipes=500, **kwargs):
                 if self.action == "forward":
@@ -531,6 +538,7 @@ class UiObject(object):
                     return jsonrpc.flingToEnd(selector, self.vertical,
                                               max_swipes)
 
+
         return _Fling()
 
     @property
@@ -542,6 +550,8 @@ class UiObject(object):
         """
         selector = self.selector
         jsonrpc = self.jsonrpc
+
+
 
         class _Scroll(object):
             def __init__(self):
@@ -560,7 +570,7 @@ class UiObject(object):
                 ]:
                     self.action = key
                     return self
-                raise ValueError("invalid prop %s" % key)
+                raise ValueError(f"invalid prop {key}")
 
             def __call__(self, steps=SCROLL_STEPS, max_swipes=500, **kwargs):
                 # More steps slows the swipe and prevents contents from being flung too far
@@ -576,5 +586,6 @@ class UiObject(object):
                 elif self.action == "to":
                     return jsonrpc.scrollTo(selector, Selector(**kwargs),
                                             self.vertical)
+
 
         return _Scroll()

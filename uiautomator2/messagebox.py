@@ -18,7 +18,7 @@ def retryskipabort(message, timeout=20):
     root = tk.Tk()
     root.geometry("400x200")
     root.title("Exception handle")
-    root.eval('tk::PlaceWindow %s center' % root.winfo_pathname(root.winfo_id()))
+    root.eval(f'tk::PlaceWindow {root.winfo_pathname(root.winfo_id())} center')
     root.attributes("-topmost", True)
 
     _kvs = {"result": "abort"}
@@ -55,7 +55,7 @@ def retryskipabort(message, timeout=20):
         if leftseconds <= 0:
             root.destroy()
             return
-        root.title("Test will stop after " + str(int(leftseconds)) + " s")
+        root.title(f"Test will stop after {int(leftseconds)} s")
         _kvs['root'] = root.after(500, _refresh_timer)
 
     _kvs['root'] = root.after(0, _refresh_timer)

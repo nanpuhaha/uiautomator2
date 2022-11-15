@@ -118,9 +118,7 @@ def test_select_iter(d):
     texts = d(resourceId='android:id/list').child(
         className='android.widget.TextView')
     assert texts.count == 4
-    words = []
-    for item in texts:
-        words.append(item.get_text())
+    words = [item.get_text() for item in texts]
     assert words == ['Morse Code', 'Rotation Vector', 'Sensors', 'SMS Messaging']
 
 

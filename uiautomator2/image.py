@@ -58,9 +58,8 @@ def cv2crop(im: np.ndarray, bounds: tuple = None):
         return im
     assert len(bounds) == 4
 
-    lx, ly, rx, ry = bounds 
-    crop_img = im[ly:ry, lx:rx]
-    return crop_img
+    lx, ly, rx, ry = bounds
+    return im[ly:ry, lx:rx]
 
 
 def compare_ssim(image_a: ImageType, image_b: ImageType, full=False, bounds=None):
@@ -152,7 +151,7 @@ def conv2pil(im: Union[np.ndarray, Image.Image]) -> Image.Image:
 def _open_data_url(data, flag=cv2.IMREAD_COLOR):
     pos = data.find('base64,')
     if pos == -1:
-        raise IOError("data url is invalid, head %s" % data[:20])
+        raise IOError(f"data url is invalid, head {data[:20]}")
 
     pos += len('base64,')
     raw_data = base64.decodestring(data[pos:])
@@ -211,10 +210,10 @@ def imread(data) -> np.ndarray:
     elif os.path.isfile(data):
         im = cv2.imread(data)
         if im is None:
-            raise IOError("Image format error: %s" % data)
+            raise IOError(f"Image format error: {data}")
         return im
 
-    raise IOError("image read invalid data: %s" % data)
+    raise IOError(f"image read invalid data: {data}")
 
 
 class ImageX(object):
@@ -261,7 +260,7 @@ class ImageX(object):
         raw_result = fi.find("target", target_pic_object=target)
         # from pprint import pprint
         # pprint(raw_result)
-        
+
         result = raw_result['data']['template']['TemplateEngine']
         # compress_rate = result['conf']['engine_template_compress_rate'] # useless
         target_sim = result['target_sim']  # 相似度  similarity
@@ -284,8 +283,7 @@ class ImageX(object):
 
     def wait(self, imdata, timeout=30.0, threshold=0.9):
         """ wait until image show up """
-        m = self.__wait(imdata, timeout=timeout, threshold=threshold)
-        return m
+        return self.__wait(imdata, timeout=timeout, threshold=threshold)
 
     def click(self, imdata, timeout=30.0):
         """
@@ -304,24 +302,6 @@ def _main():
     imb = imread("http://localhost:17310/widgets/00007/template.jpg")
     compare_ssim_debug(ima, imb, color=(0, 0, 255))
     return
-    im = imread("https://www.baidu.com/img/bd_logo1.png")
-    assert im.shape == (258, 540, 3)
-    print(im.shape)
-
-    im = imread("../tests/testdata/AE86.jpg")
-    print(im.shape)
-    assert im.shape == (193, 321, 3)
-
-    pim = cv2pil(im)
-    assert pim.size == (321, 193)
-
-    taobao = imread("screenshot.jpg")
-    import findit
-
-    fi = findit.FindIt(engine=['template'],
-                       engine_template_scale=(1, 1, 1),
-                       pro_mode=True)
-    fi.load_template("template", pic_object=taobao)
 
 
 if __name__ == "__main__":

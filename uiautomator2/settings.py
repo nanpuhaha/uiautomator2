@@ -38,7 +38,7 @@ class Settings(object):
         for k, v in self._defaults.items():
             if k not in self._prop_types:
                 self._prop_types[k] = (float, int) if type(v) in (float, int) else type(v)
-        
+
         self._set_methods = {
             "operation_delay": self.__set_operation_delay, 
         }
@@ -72,10 +72,10 @@ class Settings(object):
         if key in self._deprecated_props:
             reason = self._deprecated_props[key]
             if not reason:
-                reason = "{} is deprecated".format(key)
-            logger.warning("d.settings[{}] deprecated: {}".format(key, reason))
+                reason = f"{key} is deprecated"
+            logger.warning(f"d.settings[{key}] deprecated: {reason}")
             return
-        
+
         # Invalid properties
         if key not in self._prop_types:
             raise AttributeError("invalid attribute", key)

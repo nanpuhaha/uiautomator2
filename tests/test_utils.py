@@ -14,7 +14,7 @@ def test_list2cmdline():
     ]
     for args, expect in testdata:
         cmdline = utils.list2cmdline(args)
-        assert cmdline == expect, "Args: %s, Expect: %s, Got: %s" % (args, expect, cmdline)
+        assert cmdline == expect, f"Args: {args}, Expect: {expect}, Got: {cmdline}"
 
 
 def test_inject_call():

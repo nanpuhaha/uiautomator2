@@ -44,10 +44,7 @@ class Perf(object):
     def memory(self):
         """ PSS(KB) """
         output = self.shell(['dumpsys', 'meminfo', self.package_name]).output
-        m = _MEM_PATTERN.search(output)
-        if m:
-            return int(m.group(1))
-        return 0
+        return int(m.group(1)) if (m := _MEM_PATTERN.search(output)) else 0
 
     def _cpu_rawdata_collect(self, pid):
         """
@@ -109,7 +106,7 @@ class Perf(object):
                       re.M)
         if not m:
             return (0, 0, 0, 0, 0, 0)
-        uid = m.group(1)
+        uid = m[1]
         lines = self.shell(['cat',
                             '/proc/net/xt_qtaguid/stats']).output.splitlines()
 
@@ -132,7 +129,7 @@ class Perf(object):
             plus_array(traffic, v.rx_bytes, v.tx_bytes, v.rx_tcp_bytes,
                        v.tx_tcp_bytes, v.rx_udp_bytes, v.tx_udp_bytes)
 
-        store_key = 'netstat-%s' % uid
+        store_key = f'netstat-{uid}'
         result = []
         if store_key in self._data:
             last_traffic = self._data[store_key]
@@ -148,10 +145,8 @@ class Perf(object):
         if not app:
             app = d.app_current()
         current = app['package'] + "/" + app['activity']
-        surface_curr = 'SurfaceView - ' + current
-        if surface_curr in views:
-            return surface_curr
-        return current
+        surface_curr = f'SurfaceView - {current}'
+        return surface_curr if surface_curr in views else current
 
     def _dump_surfaceflinger(self, view):
         valid_lines = []
@@ -314,10 +309,10 @@ class Perf(object):
         plt.plot(data['time'], data['rxTcpBytes'] / 1024, 'r--', label='tcp')
         plt.legend()
         plt.title(
-            '\n'.join(
-                ["Network", timestr,
-                 'Recv %s, Send %s' % (rx_str, tx_str)]),
-            loc='left')
+            '\n'.join(["Network", timestr, f'Recv {rx_str}, Send {tx_str}']),
+            loc='left',
+        )
+
         plt.gca().xaxis.set_major_formatter(ticker.NullFormatter())
         plt.ylabel('Recv(KB)')
         plt.ylim(ymin=0)

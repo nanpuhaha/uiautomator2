@@ -110,7 +110,7 @@ class HTMLReport(object):
             'time': time.strftime("%H:%M:%S"),
             'code': code,
         }
-        base_data.update(data)
+        base_data |= data
         steps.append(base_data)
         self._flush()
 
@@ -131,8 +131,7 @@ class HTMLReport(object):
         """ patch A.funcname to new func """
         oldfunc = getattr(obj, funcname)
         if hasattr(oldfunc, 'oldfunc'):
-            raise RuntimeError("function: %s.%s already patched before" %
-                               (obj, funcname))
+            raise RuntimeError(f"function: {obj}.{funcname} already patched before")
         newfunc = functools.wraps(oldfunc)(newfunc)
         newfunc.oldfunc = oldfunc
         setattr(obj, funcname, newfunc)

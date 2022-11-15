@@ -234,9 +234,7 @@ class Watcher():
         Args:
             source: hierarchy content
         """
-        if self.triggering:  # avoid to run watcher when run watcher
-            return False
-        return self._run_watchers(source=source)
+        return False if self.triggering else self._run_watchers(source=source)
 
     def _run_watchers(self, source=None) -> bool:
         """

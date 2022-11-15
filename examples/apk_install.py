@@ -9,10 +9,10 @@ import uiautomator2 as u2
 
 
 def oppo_verify(u):
-    password = "your-password"
     if u(packageName="com.coloros.safecenter", textContains="请验证身份后安装").exists:
         print("Auto click install")
         u.set_fastinput_ime()
+        password = "your-password"
         u(className='android.widget.EditText').set_text(password)
         u(className='android.widget.Button', text='安装').click()
         time.sleep(5)

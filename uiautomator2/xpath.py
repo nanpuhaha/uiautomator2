@@ -47,9 +47,7 @@ def string_quote(s):
 
 
 def str2bytes(v) -> bytes:
-    if isinstance(v, bytes):
-        return v
-    return v.encode('utf-8')
+    return v if isinstance(v, bytes) else v.encode('utf-8')
 
 
 def strict_xpath(xpath: str, logger=logger) -> str:
@@ -152,7 +150,7 @@ class XPath(object):
         if key == "timeout":
             self.implicitly_wait(value)
         else:
-            setattr(self, "_" + key, value)
+            setattr(self, f"_{key}", value)
 
     def implicitly_wait(self, timeout):
         """ set default timeout when click """
@@ -351,7 +349,7 @@ class XPath(object):
         # FIXME(ssx): 还差一个检测是否到底的功能
         assert max_swipes > 0
         target = self(xpath)
-        for i in range(max_swipes):
+        for _ in range(max_swipes):
             if target.exists:
                 self._d.swipe_ext(direction, 0.1)  # 防止元素停留在边缘
                 return target.get_last_match()
@@ -401,12 +399,12 @@ class XPathSelector(object):
             for xp in _xpath:
                 self._xpath_list.append(strict_xpath(xp, self.logger))
         else:
-            raise TypeError("Unknown type for value {}".format(_xpath))
+            raise TypeError(f"Unknown type for value {_xpath}")
         return self
 
     def child(self, _xpath: str):
         if not _xpath.startswith("/"):
-            _xpath = "/" + _xpath
+            _xpath = f"/{_xpath}"
         self._xpath_list[-1] = self._xpath_list[-1] + _xpath
         return self
 
@@ -425,14 +423,13 @@ class XPathSelector(object):
         callback on failure
         """
         if isinstance(func, str):
-            if func == "click":
-                if len(args) == 0:
-                    args = self._position
-                func = lambda d: d.click(*args)
-            else:
+            if func != "click":
                 raise ValueError(
                     "func should be \"click\" or callable function")
 
+            if not args:
+                args = self._position
+            func = lambda d: d.click(*args)
         assert callable(func)
         self._fallback = func
         return self
@@ -491,11 +488,11 @@ class XPathSelector(object):
         inside_els = []
         px, py = self._position
         wsize = self._d.window_size()
+        # 中心点偏移百分比不应大于控件宽高的50%
+        scale = 1.5
+
         for e in els:
             lpx, lpy, rpx, rpy = e.percent_bounds(wsize=wsize)
-            # 中心点偏移百分比不应大于控件宽高的50%
-            scale = 1.5
-
             if abs(px - (lpx + rpx) / 2) > (rpx - lpx) * .5 * scale:
                 continue
             if abs(py - (lpy + rpy) / 2) > (rpy - lpy) * .5 * scale:
@@ -601,8 +598,7 @@ class XPathSelector(object):
             return inject_call(self._fallback, d=self._d)
 
     def click_exists(self, timeout=None) -> bool:
-        el = self.wait(timeout=timeout)
-        if el:
+        if el := self.wait(timeout=timeout):
             el.click()
             return True
         return False
@@ -752,7 +748,7 @@ class XMLElement(object):
 
         # check if there is more element
         new_elements = set(self._parent("//*").all()) - els
-        ppath = self.get_xpath() + "/"  # limit to child nodes
+        ppath = f"{self.get_xpath()}/"
         els = [el for el in new_elements if el.get_xpath().startswith(ppath)]
         return len(els) > 0
 
@@ -762,7 +758,7 @@ class XMLElement(object):
                   max_swipes: int = 10) -> Union["XMLElement", None]:
         assert max_swipes > 0
         target = self._parent(xpath)
-        for i in range(max_swipes):
+        for _ in range(max_swipes):
             if target.exists:
                 return target.get_last_match()
             if not self.scroll(direction):
@@ -782,7 +778,7 @@ class XMLElement(object):
         while e is not None and e != root:
             els.append(e)
             e = e.getparent()
-            
+
         xpath = strict_xpath(xpath)
         matches = root.xpath(xpath,
                 namespaces={"re": "http://exslt.org/regular-expressions"})
@@ -842,10 +838,18 @@ class XMLElement(object):
 
     @property
     def info(self):
-        ret = {}
-        for key in ("text", "focusable", "enabled", "focused", "scrollable",
-                    "selected"):
-            ret[key] = self.attrib.get(key)
+        ret = {
+            key: self.attrib.get(key)
+            for key in (
+                "text",
+                "focusable",
+                "enabled",
+                "focused",
+                "scrollable",
+                "selected",
+            )
+        }
+
         ret["className"] = self.elem.tag
         lx, ly, rx, ry = self.bounds
         ret["bounds"] = {'left': lx, 'top': ly, 'right': rx, 'bottom': ry}
@@ -888,11 +892,17 @@ class AdbUI(BasicUIMeta):
         w, h, r = data["width"], data["height"], data["rotation"]
         remote_image_path = "/sdcard/minicap.jpg"
         d.shell(["rm", remote_image_path])
-        d.shell([
-            "LD_LIBRARY_PATH=/data/local/tmp",
-            "/data/local/tmp/minicap",
-            "-P", "{0}x{1}@{0}x{1}/{2}".format(w, h, r),
-            "-s", ">" + remote_image_path]) # yapf: disable
+        d.shell(
+            [
+                "LD_LIBRARY_PATH=/data/local/tmp",
+                "/data/local/tmp/minicap",
+                "-P",
+                "{0}x{1}@{0}x{1}/{2}".format(w, h, r),
+                "-s",
+                f">{remote_image_path}",
+            ]
+        )
+
 
         if d.sync.stat(remote_image_path).size == 0:
             raise RuntimeError("screenshot using minicap error")

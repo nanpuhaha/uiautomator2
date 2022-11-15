@@ -32,7 +32,7 @@ class Info(object):
 
     def get_app_icon(self):
         icon = self._driver.app_icon(self.pkg_name)
-        icon.save(self.output_dir + 'icon.png')
+        icon.save(f'{self.output_dir}icon.png')
 
     def get_record_info(self):
         record = json.loads(self.read_file('record.json'))
@@ -75,5 +75,5 @@ class Info(object):
         # self.get_basic_info()
         self.get_record_info()
         self.get_result_info()
-        with open(self.output_dir + 'info.json', 'wb') as f:
+        with open(f'{self.output_dir}info.json', 'wb') as f:
             f.write(json.dumps(self.test_info))

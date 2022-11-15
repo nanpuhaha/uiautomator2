@@ -46,10 +46,7 @@ class Screenrecord:
         try:
             while not self._stop_event.is_set():
                 msg = ws.recv()
-                if isinstance(msg, str):
-                    # print("<-", msg)
-                    pass
-                else:
+                if not isinstance(msg, str):
                     yield msg
         finally:
             ws.close()
@@ -64,10 +61,7 @@ class Screenrecord:
                          dtype=np.uint8)  # create black background canvas
         sh = vh / h
         sw = vw / w
-        if sh < sw:
-            h, w = vh, int(sh * w)
-        else:
-            h, w = int(sw * h), vw
+        h, w = (vh, int(sh * w)) if sh < sw else (int(sw * h), vw)
         left, top = (vw - w) // 2, (vh - h) // 2
         frame[top:top + h, left:left + w, :] = cv2.resize(im, dsize=(w, h))
         return frame

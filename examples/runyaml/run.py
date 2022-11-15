@@ -37,12 +37,11 @@ def split_step(text: str):
         "等待": WAIT,
     }
 
-    for keyword in __alias.keys():
+    for keyword in __alias:
         if text.startswith(keyword):
             body = text[len(keyword):].strip()
             return __alias.get(keyword, keyword), body
-    else:
-        raise RuntimeError("Step unable to parse", text)
+    raise RuntimeError("Step unable to parse", text)
 
 
 def read_file_content(path: str, mode:str = "r") -> str:

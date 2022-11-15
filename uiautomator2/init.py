@@ -39,11 +39,14 @@ class DownloadBar(progress.bar.PixelBar):
 
 def gen_cachepath(url: str) -> str:
     filename = os.path.basename(url)
-    storepath = os.path.join(
-        appdir, "cache",
-        filename.replace(" ", "_") + "-" +
-        hashlib.sha224(url.encode()).hexdigest()[:10], filename)
-    return storepath
+    return os.path.join(
+        appdir,
+        "cache",
+        filename.replace(" ", "_")
+        + "-"
+        + hashlib.sha224(url.encode()).hexdigest()[:10],
+        filename,
+    )
 
 def cache_download(url, filename=None, timeout=None, storepath=None, logger=logger):
     """ return downloaded filepath """
@@ -74,7 +77,7 @@ def cache_download(url, filename=None, timeout=None, storepath=None, logger=logg
 
     file_size = int(r.headers.get("Content-Length"))
     bar = DownloadBar(filename, max=file_size)
-    with open(storepath + '.part', 'wb') as f:
+    with open(f'{storepath}.part', 'wb') as f:
         chunk_length = 16 * 1024
         while 1:
             buf = r.raw.read(chunk_length)
@@ -86,7 +89,7 @@ def cache_download(url, filename=None, timeout=None, storepath=None, logger=logg
 
     assert file_size == os.path.getsize(storepath +
                                         ".part")  # may raise FileNotFoundError
-    shutil.move(storepath + '.part', storepath)
+    shutil.move(f'{storepath}.part', storepath)
     return storepath
 
 def mirror_download(url: str, filename=None, logger: logging.Logger = logger):
@@ -98,8 +101,7 @@ def mirror_download(url: str, filename=None, logger: logging.Logger = logger):
         filename = os.path.basename(url)
     github_host = "https://github.com"
     if url.startswith(github_host):
-        mirror_url = "https://tool.appetizer.io" + url[len(
-            github_host):]  # mirror of github
+        mirror_url = f"https://tool.appetizer.io{url[len(github_host):]}"
         try:
             return cache_download(mirror_url,
                                   filename,
@@ -114,13 +116,21 @@ def mirror_download(url: str, filename=None, logger: logging.Logger = logger):
 
 
 def app_uiautomator_apk_urls():
-    ret = []
-    for name in ["app-uiautomator.apk", "app-uiautomator-test.apk"]:
-        ret.append((name, "".join([
-            GITHUB_BASEURL, "/android-uiautomator-server/releases/download/",
-            __apk_version__, "/", name
-        ])))
-    return ret
+    return [
+        (
+            name,
+            "".join(
+                [
+                    GITHUB_BASEURL,
+                    "/android-uiautomator-server/releases/download/",
+                    __apk_version__,
+                    "/",
+                    name,
+                ]
+            ),
+        )
+        for name in ["app-uiautomator.apk", "app-uiautomator-test.apk"]
+    ]
 
 
 def parse_apk(path: str):
@@ -196,8 +206,9 @@ class Initer():
                 break
         if not name:
             raise Exception(
-                "arch(%s) need to be supported yet, please report an issue in github"
-                % self.abis)
+                f"arch({self.abis}) need to be supported yet, please report an issue in github"
+            )
+
         return GITHUB_BASEURL + '/atx-agent/releases/download/%s/%s' % (
             __atx_agent_version__, name.format(v=__atx_agent_version__))
 
@@ -207,19 +218,21 @@ class Initer():
         binary from https://github.com/openatx/stf-binaries
         only got abi: armeabi-v7a and arm64-v8a
         """
-        base_url = GITHUB_BASEURL + \
-            "/stf-binaries/raw/0.3.0/node_modules/@devicefarmer/minicap-prebuilt/prebuilt/"
         sdk = self.sdk
+        base_url = f"{GITHUB_BASEURL}/stf-binaries/raw/0.3.0/node_modules/@devicefarmer/minicap-prebuilt/prebuilt/"
+
         yield base_url + self.abi + "/lib/android-" + sdk + "/minicap.so"
         yield base_url + self.abi + "/bin/minicap"
 
     @property
     def minitouch_url(self):
-        return ''.join([
-            GITHUB_BASEURL + "/stf-binaries",
-            "/raw/0.3.0/node_modules/@devicefarmer/minitouch-prebuilt/prebuilt/",
-            self.abi + "/bin/minitouch"
-        ])
+        return ''.join(
+            [
+                f"{GITHUB_BASEURL}/stf-binaries",
+                "/raw/0.3.0/node_modules/@devicefarmer/minitouch-prebuilt/prebuilt/",
+                f"{self.abi}/bin/minitouch",
+            ]
+        )
 
     @retry(tries=2, logger=logger)
     def push_url(self, url, dest=None, mode=0o755, tgz=False, extract_name=None):  # yapf: disable
@@ -233,7 +246,7 @@ class Initer():
                         os.path.dirname(path))  # zlib.error may raise
 
         if not dest:
-            dest = "/data/local/tmp/" + os.path.basename(path)
+            dest = f"/data/local/tmp/{os.path.basename(path)}"
 
         self.logger.debug("Push to %s:0%o", dest, mode)
         self._device.sync.push(path, dest, mode=mode)
@@ -295,10 +308,7 @@ class Initer():
         self.logger.debug("Real version: %s, Expect version: %s", real_ver,
                           want_ver)
 
-        if real_ver[:2] != want_ver[:2]:
-            return True
-
-        return real_ver[2] < want_ver[2]
+        return True if real_ver[:2] != want_ver[:2] else real_ver[2] < want_ver[2]
 
     def check_install(self):
         """
@@ -311,13 +321,7 @@ class Initer():
         if d.sync.stat(self.atx_agent_path).size == 0:
             return False
 
-        if self.is_atx_agent_outdated():
-            return False
-
-        if self.is_apk_outdated():
-            return False
-
-        return True
+        return False if self.is_atx_agent_outdated() else not self.is_apk_outdated()
 
     def _install_uiautomator_apks(self):
         """ use uiautomator 2.0 to run uiautomator test
@@ -333,7 +337,7 @@ class Initer():
     def _install_jars(self):
         """ use uiautomator 1.0 to run uiautomator test """
         for (name, url) in self.jar_urls:
-            self.push_url(url, "/data/local/tmp/" + name, mode=0o644)
+            self.push_url(url, f"/data/local/tmp/{name}", mode=0o644)
 
     def _install_atx_agent(self):
         self.logger.info("Install atx-agent %s", __atx_agent_version__)
@@ -373,7 +377,7 @@ class Initer():
 
         self.logger.info("Check atx-agent version")
         self.check_atx_agent_version()
-        print("Successfully init %s" % self._device)
+        print(f"Successfully init {self._device}")
     
     def start_atx_agent(self):
         self.shell(self.atx_agent_path, 'server', '--nouia', '-d', "--addr", self.__atx_listen_addr)

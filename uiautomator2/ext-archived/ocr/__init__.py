@@ -83,8 +83,7 @@ class OCRSelector(object):
         first = True
         while first or time.time() < deadline:
             first = False
-            all = self.all()
-            if all:
+            if all := self.all():
                 return all
         raise OCRObjectNotFound(self._text)
 

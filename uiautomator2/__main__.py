@@ -23,8 +23,7 @@ from .version import __version__
 
 
 def cmd_init(args):
-    serial = args.serial or args.serial_optional
-    if serial:
+    if serial := args.serial or args.serial_optional:
         device = adbutils.adb.device(serial)
         init = Initer(device)
         init.install()
@@ -46,7 +45,7 @@ def cmd_purge(args):
 def cmd_screenshot(args):
     d = u2.connect(args.serial)
     d.screenshot().save(args.filename)
-    print("Save screenshot to %s" % args.filename)
+    print(f"Save screenshot to {args.filename}")
 
 
 def cmd_identify(args):
@@ -123,7 +122,7 @@ def cmd_doctor(args):
         apk_debug = init._device.package_info("com.github.uiautomator")
         version = apk_debug['version_name']
         print("\tGOOD: com.github.uiautomator", version)
-    
+
     if ok:
         print("CHECK jsonrpc")
         d = u2.connect(args.serial)
@@ -132,12 +131,12 @@ def cmd_doctor(args):
             print("\tGOOD: d.info success")
         else:
             ok = False
-    
-    print("==> %s <==" % ("GOOD" if ok else "FAIL"))
+
+    print(f'==> {"GOOD" if ok else "FAIL"} <==')
     
 
 def cmd_version(args):
-    print("uiautomator2 version: %s" % __version__)
+    print(f"uiautomator2 version: {__version__}")
 
 
 def cmd_console(args):
@@ -154,8 +153,7 @@ def cmd_console(args):
         c.InteractiveShellEmbed.colors = "neutral"
         IPython.embed(config=c, header="IPython -- d.info is ready")
     except ImportError:
-        _vars = globals().copy()
-        _vars.update(locals())
+        _vars = globals() | locals()
         shell = code.InteractiveConsole(_vars)
         shell.interact(banner="Python: %s\nDevice: %s(%s)" %
                        (platform.python_version(), model, serial))

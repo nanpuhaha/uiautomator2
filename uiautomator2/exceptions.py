@@ -44,7 +44,7 @@ class GatewayError(ServerError):
         self.description = description
 
     def __str__(self):
-        return "uiautomator2.GatewayError(" + self.description + ")"
+        return f"uiautomator2.GatewayError({self.description})"
 
 
 ## errors which no need to restart uiautomator
